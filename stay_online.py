@@ -1,19 +1,19 @@
 import pyautogui
 import time
+from datetime import datetime, timedelta
 
 # Constants
 INTERVAL = 1790  # 29 minutes and 50 seconds in seconds
 HOURS_TO_SECONDS = 3600
 
-def simulate_activity():
+def simulate_activity(is_shift=False):
     """
-    Simulate user activity by alternating between pressing 'm' and 'shift+m'.
-    This function is called every INTERVAL seconds.
+    Simulate user activity by pressing 'm' or 'shift+m'.
     """
-
-    pyautogui.press('m')
-    time.sleep(INTERVAL)
-    pyautogui.hotkey('shift', 'm')
+    if is_shift:
+        pyautogui.hotkey('shift', 'm')
+    else:
+        pyautogui.press('m')
 
 def switch_to_slack():
     """
@@ -21,6 +21,12 @@ def switch_to_slack():
     """
     pyautogui.hotkey('alt', 'tab')
     time.sleep(1)  # Wait for window switch to complete
+
+def format_time(seconds):
+    """
+    Format seconds into a string of hours, minutes, and seconds.
+    """
+    return str(timedelta(seconds=int(seconds)))
 
 def maintain_active_status(duration_hours):
     """
@@ -30,11 +36,24 @@ def maintain_active_status(duration_hours):
     duration_hours (int): Number of hours to maintain active status
     """
     total_intervals = int((duration_hours * HOURS_TO_SECONDS) / INTERVAL)
+    start_time = datetime.now()
+    end_time = start_time + timedelta(hours=duration_hours)
     
-    for _ in range(total_intervals):
-        simulate_activity()
+    for interval in range(total_intervals):
+        next_action_time = datetime.now() + timedelta(seconds=INTERVAL)
+        is_shift = interval % 2 != 0  # Alternate between 'm' and 'shift+m'
 
-    print("Active status maintenance completed!")
+        while datetime.now() < next_action_time:
+            remaining_seconds = (next_action_time - datetime.now()).total_seconds()
+            action_char = 'M' if is_shift else 'm'
+            status_line = f"\rNext '{action_char}' in: {format_time(remaining_seconds)} | Progress: {interval+1}/{total_intervals}"
+            print(status_line, end='', flush=True)
+            time.sleep(0.5)  # Update every half second
+
+        simulate_activity(is_shift)
+        print(f"\nPressed {'shift+m' if is_shift else 'm'}")
+
+    print("\nActive status maintenance completed!")
 
 def main():
     """
